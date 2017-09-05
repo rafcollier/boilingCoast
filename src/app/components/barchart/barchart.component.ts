@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation, NgZone } from '@angular/core';
 import * as d3 from 'd3';
 import {Router} from '@angular/router';
 import {ActivatedRoute} from '@angular/router';
@@ -30,16 +30,22 @@ export class BarchartComponent implements OnInit {
 
   showData = false;
   inputAll = {};
+  devices: Array<any> = [];
   pageviews: Array<any> = [];
   topPages: Array<any> = [];
+  topCountrys: Array<any> = [];
+  topSources: Array<any> = [];
   
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private authService: AuthService
+    private authService: AuthService,
+    private zone: NgZone
   ) { }
 
   ngOnInit() {
+
+   this.showData = false;
    let inputObj = this.getInputData();
    let firstDaysArr = this.getDates(inputObj["firstDay"]);
    let lastDaysArr = this.getDates(inputObj["lastDay"]);
@@ -56,8 +62,14 @@ export class BarchartComponent implements OnInit {
      ],
      "metric1": "pageviews",
      "metric2": "uniquePageviews",
+     "metric3": "sessions",
      "dimension": "pagePath",
+     "dimension2": "country",
+     "dimension3": "source",
+     "dimension4": "deviceCategory",
      "sort": "uniquePageviews",
+     "sort2": "sessions",
+     "sort3": "pageviews",
      "max": 10
    }
 
@@ -120,46 +132,107 @@ export class BarchartComponent implements OnInit {
     return lastDate;
   }
 
+  public printTemp(data) {
+    console.log("data is" + data);
+  }
 
   public onButtonOneClick() {
-    console.log("Button One Clicked.");
-    this.showData = true;
-    this.onAnalyticsSubmit(this.inputAll["views"][0]);
-    this.onUniquePageviewsSubmit(this.inputAll["views"][0]);
-    
+    this.callAnalytics(0);
   }
 
   public onButtonTwoClick() {
-    console.log("Button One Clicked.");
-    this.onAnalyticsSubmit(this.inputAll["views"][1]);
-    this.onUniquePageviewsSubmit(this.inputAll["views"][1]);
-    this.showData = true;
+    this.callAnalytics(1);
   }
 
   public onButtonThreeClick() {
-    console.log("Button One Clicked.");
-    this.onAnalyticsSubmit(this.inputAll["views"][2]);
-    this.onUniquePageviewsSubmit(this.inputAll["views"][2]);
-    this.showData = true;
+    this.callAnalytics(2);
   }
 
   public onButtonFourClick() {
-    console.log("Button One Clicked.");
-    this.onAnalyticsSubmit(this.inputAll["views"][3]);
-    this.onUniquePageviewsSubmit(this.inputAll["views"][3]);
-    this.showData = true;
+    this.callAnalytics(3);
   }
 
   public onButtonFiveClick() {
-    console.log("Button One Clicked.");
-    this.onAnalyticsSubmit(this.inputAll["views"][4]);
-    this.onUniquePageviewsSubmit(this.inputAll["views"][4]);
-    this.showData = true;
+    this.callAnalytics(4);
   }
 
-  public onAnalyticsSubmit(view) {
+  public callAnalytics(index) {
+    this.showData = true;
+    this.onUniquePageviewsSubmit(this.inputAll["views"][index]);
+  }
+
+  public onUniquePageviewsSubmit(view) {
+    let topPagesArray = [];
+    this.authService.getUniquePageviews(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric2"], this.inputAll["dimension"], this.inputAll["sort"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
+      console.log(data);
+      for(var i=0; i<this.inputAll["max"]; i++) {
+        topPagesArray.push({"url": data.rows[i][0], "views": data.rows[i][1]}); 
+      }
+      this.topPages = topPagesArray;
+      this.onCountryDataSubmit(view);
+      },
+      err => {
+        console.log(err);
+        return false;
+      });
+    this.refreshBindings();
+  }
+
+  public onCountryDataSubmit(view) {
+    let topCountrysArray = [];
+    this.authService.getCountryData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric3"], this.inputAll["dimension2"], this.inputAll["sort2"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
+      console.log(data);
+      for(var i=0; i<this.inputAll["max"]; i++) {
+        topCountrysArray.push({"country": data.rows[i][0], "views": data.rows[i][1]}); 
+      }
+      this.topCountrys = topCountrysArray;
+      this.onSourceDataSubmit(view);
+      },
+      err => {
+        console.log(err);
+        return false;
+      });
+    this.refreshBindings();
+  }
+
+  public onSourceDataSubmit(view) {
+  let topSourcesArray = [];
+  this.authService.getSourceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension3"], this.inputAll["sort3"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
+    console.log(data);
+    for(var i=0; i<this.inputAll["max"]; i++) {
+      topSourcesArray.push({"source": data.rows[i][0], "views": data.rows[i][1]}); 
+    }
+    this.topSources = topSourcesArray;
+    this.onDeviceDataSubmit(view);
+    },
+    err => {
+      console.log(err);
+      return false;
+    });
+    this.refreshBindings();
+  }
+
+  public onDeviceDataSubmit(view) {
+    let devicesArray = [];
+    this.authService.getDeviceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension4"], this.inputAll["sort3"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
+      console.log(data);
+      for(var i=0; i<3; i++) { //only need 3: mobile, desktop, tablet
+        devicesArray.push({"device": data.rows[i][0], "views": data.rows[i][1]}); 
+        console.log(data.rows[i]);
+      }
+      this.devices = devicesArray;
+      this.onAnalyticsSubmit(view, devicesArray);
+      },
+      err => {
+        console.log(err);
+        return false;
+      });
+    this.refreshBindings();
+  }
+
+
+  public onAnalyticsSubmit(view, devicesArray) {
     console.log("In onAnalyticsSubmit");
-    console.log(view);
     var pageviewArray = [];
     var count = 0;
 
@@ -179,7 +252,7 @@ export class BarchartComponent implements OnInit {
             return 0;
           });
         console.log(pageviewArray); 
-        this.createChart(pageviewArray);
+        this.createChart(pageviewArray, devicesArray, view);
         }  
       },
       err => {
@@ -187,176 +260,27 @@ export class BarchartComponent implements OnInit {
         return false;
       });
     }
-    //console.log(pageviewArray);
-    //let sortedArr = this.sortArr(pageviewArray); 
-    //return pageviewArray;
+    this.refreshBindings();
   }
 
-  public onUniquePageviewsSubmit(view) {
-    let topPagesArray = [];
-    let count = 0;
-    let topPagesObject = 
-        {
-          url: "",
-          views: "" 
-        };
-
-    this.authService.getUniquePageviews(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric2"], this.inputAll["dimension"], this.inputAll["sort"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
-      for(var i=0; i<this.inputAll["max"]; i++) {
-        topPagesArray.push({"url": data.rows[i][0], "views": data.rows[i][1]}); 
-      }
-      this.topPages = topPagesArray;
-      //console.log(this.topPages);
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    }
-  
-
-  public createChart(dataset) {
+    
+  public createChart(dataset, devicesArray, view) {
 
     console.log("in createChart");
     console.log(dataset);
+    console.log(devicesArray);
+    console.log(view);
+    const cmajNewsScale = 0.022;
+    const cmajBlogsScale = 0.05;
+    const cmajCaScale = 0.0015;
+    const cmajOpenScale = 0.025;
+    const cmajMobileScale = 0.0055;
 
-    //let element1 = this.chartContainer1.nativeElement;
-   // let element2 = this.chartContainer2.nativeElement;
-
-    //this.width = element1.offsetWidth - this.margin.left - this.margin.right;
-    //this.height = element1.offsetHeight - this.margin.top - this.margin.bottom;
-    //console.log(this.width);
-    //console.log(this.height);
-   // console.log(element1.offsetWidth);
-    //console.log(element1.offsetHeight);
-
-    //let svg1 = d3.select(element1).append('svg')
-     // .attr('width', element1.offsetWidth)
-     // .attr('height', element1.offsetHeight);
-
-    //let svg2 = d3.select(element2).append('svg')
-     // .attr('width', element2.offsetWidth)
-     // .attr('height', element2.offsetHeight);
-
-
-
-   //console.log(this.data);
-   //console.log(this.pageviewsOnly);
-
-    //svg1.selectAll("rect")
-     // .data(this.data)
-     // .data(this.pageviewsOnly)
-     // .enter()
-     // .append("rect")
-     // .attr("x", function(d, i) {
-     //   return (i * 65)  //Bar width of 20 plus 1 for padding
-     // })
-     // .attr("y", function(d) {
-     //   return element1.offsetHeight - (d * 0.001) ;  //Height minus data value
-     // })
-     // .attr("width", 60)
-     // .attr("height", function(d) {
-     //   return (d * 0.001); 
-     // })
-     // .attr("fill", "red");
-
-
-
-
-
-//      svg2.selectAll("rect")
-//      .data(this.data)
-//      .enter()
-//      .append("rect")
-//      .attr("x", function(d, i) {
-//        return (i * 21)  //Bar width of 20 plus 1 for padding
-//      })
-//      .attr("y", function(d) {
-//        return element2.offsetHeight - (d * 10);  //Height minus data value
-//      })
-//      .attr("width", 20)
-//      .attr("height", function(d) {
-//        return (d * 10);
-//      })
-//      .attr("fill", "green");
-
-
-
-
-
-      //d3.select("body").selectAll("p")
-       // .data(this.data)
-       // .enter()
-       // .append("p")
-       // //.text("New Paragraph");
-       // .text(function(d) {return d;})
-       // .style("color", "red");
-
-
-
-      //d3.select("body").selectAll("h4")
-       // .data(this.data)
-       // .enter()
-       // .append("h4")
-       // .text(function(d) {return d;});
-        //.attr("class", "bar");
-
-
-     // d3.select("body").selectAll(".somediv") //can't select DIV because already DIV in HTML
-      //  .data(this.pageviewsOnly)
-      //  .enter()
-      //  .append("div")
-      //  .attr("class", "bar")
-      //  .style("height", function(d) {
-      //    var barHeight = d * 0.001;
-      //    return barHeight + "px";
-      //  });
-
-
-
-      //var w = 500;
-      //var h = 50;
-
-      //var svg = d3.select("body")
-      //  .append("svg")
-      //  .attr("width", w)
-      //  .attr("height", h)
-//
-//      var circles = svg.selectAll("circle")  
-//        .data(this.data)
-//        .enter()
-//        .append("circle");
-//
-//      circles.attr('cx', function(d, i) {
-//        return (i * 50) + 25;
-//      })
-//      .attr("cy", h/2)
-//      .attr("r", function(d) {
-//        return d;
-//      })
-//      .attr("fill", "yellow");
-
-     
-      d3.select("svg").remove();
+      d3.selectAll("svg").remove();
 
       var w = 500;
       var h = 500;
       var barPadding = 3;
-      //var dataset = this.pageviewsOnly;
-      //var dataset = this.pageviews;
-      //var dataset = pageViewArray;
-      //console.log("dataset");
-      //console.log(dataset);
-
-      //var xscale = d3.scaleLinear()
-       // .domain([d3.min(dataset, function(d) { return d; }), d3.max(dataset, function(d) {return d;})])
-       // .range([0, w]);
-        
-      //var yscale = d3.scaleLinear()
-      //  .domain([d3.min(dataset, function(d) { return d; }), d3.max(dataset, function(d) {return d;})])
-      //  .range([0, h]);
-
 
       var svg = d3.select("#barchart1")
         .append("svg")
@@ -374,32 +298,32 @@ export class BarchartComponent implements OnInit {
         })
         .attr("y", function(d) {
           if(d["pageName"] == "CMAJ News")
-            return h - (d["views"] * 0.035);
+            return h - (d["views"] * cmajNewsScale);
           if(d["pageName"] == "CMAJ Blogs")
-            return h - (d["views"] * 0.05);
+            return h - (d["views"] * cmajBlogsScale);
           if(d["pageName"] == "CMAJ.CA")
-            return h - (d["views"] * 0.0015);
+            return h - (d["views"] * cmajCaScale);
           if(d["pageName"] == "CMAJ Open")
-            return h - (d["views"] * 0.025);
+            return h - (d["views"] * cmajOpenScale);
           if(d["pageName"] == "CMAJ Mobile")
-            return h - (d["views"] * 0.0055);
+            return h - (d["views"] * cmajMobileScale);
           else
             return h - (d["views"] * 0.002);
         })
         .attr("width", w /dataset.length - barPadding)
         .attr("height", function(d) {
-          if(d["pageName"] == "CMAJ News")
-            return (d["views"] * 0.035);
+         if(d["pageName"] == "CMAJ News")
+            return d["views"] * cmajNewsScale;
           if(d["pageName"] == "CMAJ Blogs")
-            return (d["views"] * 0.05);
+            return d["views"] * cmajBlogsScale;
           if(d["pageName"] == "CMAJ.CA")
-            return (d["views"] * 0.0015);
+            return d["views"] * cmajCaScale;
           if(d["pageName"] == "CMAJ Open")
-            return (d["views"] * 0.025);
+            return d["views"] * cmajOpenScale;
           if(d["pageName"] == "CMAJ Mobile")
-            return (d["views"] * 0.0055);
+            return d["views"] * cmajMobileScale;
           else
-            return (d["views"] * 0.02);
+            return d["views"] * 0.002;
         })
         .attr("fill", "#DE8D47");
       
@@ -415,17 +339,17 @@ export class BarchartComponent implements OnInit {
         })
         .attr("y", function (d) {
           if(d["pageName"] == "CMAJ News")
-            return h - (d["views"] * 0.035) + 25;
+            return h - (d["views"] * cmajNewsScale) - 10;
           if(d["pageName"] == "CMAJ Blogs")
-            return h - (d["views"] * 0.05) + 25;
+            return h - (d["views"] * cmajBlogsScale) - 10;
           if(d["pageName"] == "CMAJ.CA")
-            return h - (d["views"] * 0.0015) + 25;
+            return h - (d["views"] * cmajCaScale) - 10;
           if(d["pageName"] == "CMAJ Open")
-            return h - (d["views"] * 0.025) + 25;
+            return h - (d["views"] * cmajOpenScale) - 10;
           if(d["pageName"] == "CMAJ Mobile")
-            return h - (d["views"] * 0.0055) + 25;
+            return h - (d["views"] * cmajMobileScale) - 10;
           else
-            return h - (d["views"] * 0.02) + 25;
+            return h - (d["views"] * 0.02) - 10;
         })
         .attr("font-family", "arial")
         .attr("font-size", "16px")
@@ -442,83 +366,215 @@ export class BarchartComponent implements OnInit {
           return i * (w / dataset.length) + 15;
         })
         .attr("y", function (d) {
-          return h - 20;
+          return h - 5;
         })
         .attr("font-family", "arial")
         .attr("font-size", "14px")
         .attr("fill", "white");
 
 
+    var w2 = 300;
+    var h2 = 500;
+    var barPadding2 = 3;
+
+    var svg2 = d3.select("#barchart2")
+      .append("svg")
+      .attr("width", w2)
+      .attr("height", h2)
+      .attr("align", "center");
+
+
+    svg2.selectAll("rect")  
+      .data(devicesArray)
+      .enter()
+      .append("rect")
+      .attr("x", function(d, i) {
+        return i * (w2 / devicesArray.length);
+      })
+      .attr("y", function(d) {
+        if(view["name"] == "CMAJ News")
+          return h2 - (d["views"] * (cmajNewsScale * 2));
+        if(view["name"] == "CMAJ Blogs")
+          return h2 - (d["views"] * (cmajBlogsScale * 1.6));
+          //return h2 - (d["views"] * (0.8));
+        if(view["name"] == "CMAJ.CA")
+          return h2 - (d["views"] * (cmajCaScale * 1.4));
+        if(view["name"] == "CMAJ Open")
+          return h2 - (d["views"] * (cmajOpenScale * 1.2));
+        if(view["name"] == "CMAJ Mobile")
+          return h2 - (d["views"] * (cmajMobileScale * 1.5));
+        else
+          return h2 - (d["views"] * 0.002);
+      })   
+      .attr("width", w2 /devicesArray.length - barPadding2)
+      .attr("height", function(d) {
+        return (d["views"] * 0.08);
+      })
+      .attr("fill", "#DE8D47");
       
+    svg2.selectAll("text.values")
+      .data(devicesArray)
+      .enter()
+      .append("text")
+      .text(function(d) {
+        return d["views"];
+      })
+      .attr("x", function (d, i) {
+        return i * (w2 / devicesArray.length) + 25;
+      })
+      .attr("y", function (d) {
+        if(view["name"] == "CMAJ News")
+          return h2 - (d["views"] * (cmajNewsScale * 2)) - 10;
+        if(view["name"] == "CMAJ Blogs")
+          return h2 - (d["views"] * (cmajBlogsScale * 1.6)) - 10;
+        if(view["name"] == "CMAJ.CA")
+          return h2 - (d["views"] * (cmajCaScale * 1.4)) - 15;
+        if(view["name"] == "CMAJ Open")
+          return h2 - (d["views"] * (cmajOpenScale * 1.2)) - 10;
+        if(view["name"] == "CMAJ Mobile")
+          return h2 - (d["views"] * (cmajMobileScale * 1.5)) - 10;
+        else
+          return h2 - (d["views"] * 0.002);
+      })   
+      .attr("font-family", "arial")
+      .attr("font-size", "16px")
+      .attr("fill", "white");
+
+    svg2.selectAll("text.labels")
+      .data(devicesArray)
+      .enter()
+      .append("text")
+      .text(function(d) {
+        return d["device"];
+      })
+      .attr("x", function (d, i) {
+        return i * (w2 / devicesArray.length) + 15;
+      })
+      .attr("y", function (d) {
+        return h2 - 5;
+      })
+      .attr("font-family", "arial")
+      .attr("font-size", "14px")
+      .attr("fill", "white");
+
+    //let dataset3 = [
+    //             {"label":"one", "value":20}, 
+    //             {"label":"two", "value":50}, 
+    //             {"label":"three", "value":30}
+    //           ];
+    //console.log(dataset3);
+//
+//    
+//    var w3:number = 300;
+//    var h3:number = 300;
+//    var radius:number = Math.min(w3, h3)/2; 
+//
+//    console.log(w3, h3, radius);
+//
+//    var color:any = d3.scaleOrdinal()
+//      .range(["#2C93E8","#838690","#F56C4E"]);
+//
+//    console.log(color);
+//
+//    var svg3:any = d3.select("#piechart1")
+//      .append("svg:svg")
+//      .data([dataset3])
+//        .attr("width", w3)
+//        .attr("height", h3)
+//      .append("svg:g")
+//        .attr("transform", "translate(" + radius + "," + radius + ")");
+//
+//
+//    var arc:any = d3.arc()
+//      .outerRadius(radius)
+//
+
+    //var pie:any = d3.pie()(data.map(function(d) { return d["presses"];}))
+
+    //var arc:any = d3.arc()
+    //  .innerRadius(0)
+    //  .outerRadius(radius);
+
+    //var labelArc: any = d3.arc()
+    //  .outerRadius(radius - 40)
+    //  .innerRadius(radius - 40);
+
+    //var path:any = svg.selectAll("path")
+    //  .data(pie)
+    //  .enter()
+    //  .append("path")
+    //  .attr('d', arc)
+    //  .style("fill", function(d) {return color(d.data["letter"]);});
 
 
+    //var path = svg.selectAll('path')
+     // .data(pie(data))
+     // .enter()
+     // .append('path')
+     // .attr('d', arc)
+     // .attr('fill', function(d, i) {
+     //   return color(d.data.label)
+     // })
 
+      //this.createPieChart();
 
-    // chart plot area
-    //this.chart = svg.append('g')
-     // .attr('class', 'bars')
-     // .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
+      this.refreshBindings();
 
-    // define X & Y domains
-    //let xDomain = this.data.map(d => d[0]);
-    //let yDomain = [0, d3.max(this.data, d => d[1])];
-
-    // create scales
-    //this.xScale = d3.scaleBand().padding(0.1).domain(xDomain).rangeRound([0, this.width]);
-    //this.yScale = d3.scaleLinear().domain(yDomain).range([this.height, 0]);
-
-    // bar colors
-    //this.colors = d3.scaleLinear().domain([0, this.data.length]).range(<any[]>['red', 'blue']);
-
-    // x & y axis
-   // this.xAxis = svg.append('g')
-   //   .attr('class', 'axis axis-x')
-    //  .attr('transform', `translate(${this.margin.left}, ${this.margin.top + this.height})`)
-    //  .call(d3.axisBottom(this.xScale));
-   // this.yAxis = svg.append('g')
-    //  .attr('class', 'axis axis-y')
-    //  .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
-    //  .call(d3.axisLeft(this.yScale));
   }
 
-  //updateChart() {
-    // update scales & axis
-    //this.xScale.domain(this.data.map(d => d[0]));
-    //this.yScale.domain([0, d3.max(this.data, d => d[1])]);
-    //this.colors.domain([0, this.data.length]);
-    ////this.xAxis.transition().call(d3.axisBottom(this.xScale));
-    //this.yAxis.transition().call(d3.axisLeft(this.yScale));
+  public createPieChart() {
+    
+    let w = 300;
+    let h = 300;
+    let r = 100;
 
-    //let update = this.chart.selectAll('.bar')
-    //  .data(this.data);
+    let color = d3.scaleOrdinal()
+      .range(["#2C93E8","#838690","#F56C4E"]);
 
-    // remove exiting bars
-    //update.exit().remove();
+    let data = [{"label":"one", "value":20}, 
+                {"label":"two", "value":50}, 
+                {"label":"three", "value":30}];
 
-    // update existing bars
-    //this.chart.selectAll('.bar').transition()
-    //  .attr('x', d => this.xScale(d[0]))
-    //  .attr('y', d => this.yScale(d[1]))
-    //  .attr('width', d => this.xScale.bandwidth())
-    //  .attr('height', d => this.height - this.yScale(d[1]))
-    //  .style('fill', (d, i) => this.colors(i));
+    console.log(data);
 
-    // add new bars
-    //update
-    //  .enter()
-    //  .append('rect')
-    //  .attr('class', 'bar')
-    //  .attr('x', d => this.xScale(d[0]))
-    //  .attr('y', d => this.yScale(0))
-    //  .attr('y', 0)
-    //  .attr('width', this.xScale.bandwidth())
-    //  .attr('height', 0)
-    //  .style('fill', (d, i) => this.colors(i))
-    //  .transition()
-    //  .delay((d, i) => i * 10)
-    //  .attr('y', d => this.yScale(d[1]))
-    //  .attr('height', d => this.height - this.yScale(d[1]));
-  //}
+    let svg = d3.select("#piechart1")
+      .append("svg")
+      .data([data])
+        .attr("width", w)
+        .attr("height", h)
+      .append("g") 
+        .attr("transform", "translate(" + r + "," + r + ")")       
+
+   let arc = d3.arc()        
+      .innerRadius(0)
+      .outerRadius(r);
+
+    let pie = d3.pie()
+      .value(function(d) {return d["value"];})
+      .sort(null);
+
+
+
+
+
+
+
+
+
+
+    this.refreshBindings();
+
+
+  }
+
+
+
+
+
+
+  public refreshBindings() {
+    this.zone.run(() => this.showData = true);
+  }
 
 
 }

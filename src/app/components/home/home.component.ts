@@ -1,7 +1,8 @@
-import { Component, OnInit, ElementRef, AfterViewInit, VERSION } from '@angular/core';
+import { Component, OnInit, ElementRef, AfterViewInit, VERSION, NgZone } from '@angular/core';
 import {AuthService} from '../../services/auth.service';
 import {Router} from '@angular/router';
 declare const gapi: any;
+declare const FB: any;
 const config = require('../../../../../config/google');
 
 
@@ -10,6 +11,7 @@ const config = require('../../../../../config/google');
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
+
 export class HomeComponent implements AfterViewInit {
 
   private scope = [
@@ -21,18 +23,27 @@ export class HomeComponent implements AfterViewInit {
     'https://www.googleapis.com/auth/plus.login' //to get access token
   ].join(' ');
 
-  public auth2: any;
+  public auth2: any; 
+
 
   constructor(
      private authService: AuthService,
      private element: ElementRef,
-     private router: Router
+     private router: Router,
+     private zone: NgZone
   	) { }
+
 
   ngAfterViewInit() {
     console.log("inside afterviewinit");
     this.googleInit();
   }
+
+  onFacebookLoginClick() {
+    FB.login;
+  }
+
+
 
   public googleInit() {
     console.log("inside google init");
@@ -52,24 +63,13 @@ export class HomeComponent implements AfterViewInit {
       (googleUser) => {
         let profile = googleUser.getBasicProfile();
         const accessToken = googleUser.getAuthResponse().access_token;
-        //console.log('ID Token || ' + googleUser.getAuthResponse().id_token);
-        //console.log('Access Token || ' + googleUser.getAuthResponse().access_token);
-        //console.log(accessToken);
-        //console.log('ID: ' + profile.getId());
-        //console.log('Name: ' + profile.getName());
-        //console.log('Image URL: ' + profile.getImageUrl());
-        //console.log('Email: ' + profile.getEmail());
-
         this.router.navigate(['/enterkey'], {queryParams: {token: accessToken}});
-
     }, function (error) {
         console.log(JSON.stringify(error, undefined, 2));
     });
   }
-
-
-
-
 }
+
+
 
 
