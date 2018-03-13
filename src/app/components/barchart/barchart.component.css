@@ -1,3 +1,33 @@
+body {
+  margin-top: 50px;
+}
+
+.arc text {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+.arc path {
+  stroke: #fff;
+}
+
+.black-border {
+  border:1px solid black;
+}
+
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr, 1fr));
+  background-color: #eee;
+}
+
+.box {
+  background-color: #ddd;
+  border-radius: 1px;
+  padding: 10px;
+}
+
+
 .flex-container {
   padding: 0;
   margin: 0;

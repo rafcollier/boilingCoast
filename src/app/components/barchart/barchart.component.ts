@@ -31,7 +31,7 @@ export class BarchartComponent implements OnInit {
   showData = false;
   inputAll = {};
   devices: Array<any> = [];
-  pageviews: Array<any> = [];
+  pageviewsArray: Array<any> = [];
   topPages: Array<any> = [];
   topCountrys: Array<any> = [];
   topSources: Array<any> = [];
@@ -70,10 +70,11 @@ export class BarchartComponent implements OnInit {
      "sort": "uniquePageviews",
      "sort2": "sessions",
      "sort3": "pageviews",
-     "max": 10
+     "max": 10,
+     "maxSources": 7,
+     "maxCountries": 7 
    }
-
-   console.log(this.inputAll); 
+   this.callAnalytics();
   }
   
 
@@ -132,33 +133,32 @@ export class BarchartComponent implements OnInit {
     return lastDate;
   }
 
-  public printTemp(data) {
-    console.log("data is" + data);
-  }
-
-  public onButtonOneClick() {
-    this.callAnalytics(0);
-  }
-
-  public onButtonTwoClick() {
-    this.callAnalytics(1);
-  }
-
-  public onButtonThreeClick() {
-    this.callAnalytics(2);
-  }
-
-  public onButtonFourClick() {
-    this.callAnalytics(3);
-  }
-
-  public onButtonFiveClick() {
-    this.callAnalytics(4);
-  }
-
-  public callAnalytics(index) {
+  public callAnalytics() {
     this.showData = true;
-    this.onUniquePageviewsSubmit(this.inputAll["views"][index]);
+    this.onAnalyticsSubmit(this.inputAll["views"][0], 0);
+  }
+
+  public onAnalyticsSubmit(view, count) {
+    console.log("In onAnalyticsSubmit");
+
+    this.authService.getGoogleData(this.inputAll["firstDays"][count], this.inputAll["lastDays"][count], this.inputAll["metric1"], this.inputAll["token"], view["id"]).subscribe(data => {
+      this.pageviewsArray.push({"pageName" : view["name"], "views": parseInt(data.totalsForAllResults["ga:pageviews"]), "month": data.query["start-date"]});
+
+      if(count < 5) {
+        this.onAnalyticsSubmit(view, count+1)
+      }
+      else {
+        console.log(this.pageviewsArray);
+        this.onUniquePageviewsSubmit(this.inputAll["views"][0]);
+        return;
+      }
+    },
+      err => {
+        console.log(err);
+        return false;
+    });
+
+    this.refreshBindings();
   }
 
   public onUniquePageviewsSubmit(view) {
@@ -169,59 +169,64 @@ export class BarchartComponent implements OnInit {
         topPagesArray.push({"url": data.rows[i][0], "views": data.rows[i][1]}); 
       }
       this.topPages = topPagesArray;
-      this.onCountryDataSubmit(view);
+      this.onSourceDataSubmit(this.inputAll["views"][0]);
       },
       err => {
         console.log(err);
         return false;
       });
     this.refreshBindings();
-  }
+    }
 
-  public onCountryDataSubmit(view) {
-    let topCountrysArray = [];
-    this.authService.getCountryData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric3"], this.inputAll["dimension2"], this.inputAll["sort2"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
-      for(var i=0; i<this.inputAll["max"]; i++) {
-        topCountrysArray.push({"country": data.rows[i][0], "views": data.rows[i][1]}); 
-      }
-      this.topCountrys = topCountrysArray;
-      this.onSourceDataSubmit(view);
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    this.refreshBindings();
-  }
 
   public onSourceDataSubmit(view) {
-  let topSourcesArray = [];
-  this.authService.getSourceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension3"], this.inputAll["sort3"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
-    console.log(data);
-    for(var i=0; i<this.inputAll["max"]; i++) {
-      topSourcesArray.push({"source": data.rows[i][0], "views": data.rows[i][1]}); 
-    }
-    this.topSources = topSourcesArray;
-    this.onDeviceDataSubmit(view);
-    },
-    err => {
-      console.log(err);
-      return false;
-    });
+    let topSourcesArray = [];
+    let sourceColorArray = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"];
+    this.authService.getSourceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension3"], this.inputAll["sort3"], this.inputAll["maxSources"], this.inputAll["token"], view["id"]).subscribe(data => {
+      console.log(data);
+      for(var i=0; i<this.inputAll["maxSources"]; i++) {
+        topSourcesArray.push({"source": data.rows[i][0], "views": data.rows[i][1], "color": sourceColorArray[i]}); 
+      }
+      this.topSources = topSourcesArray;
+      this.onDeviceDataSubmit(this.inputAll["views"][0]);
+      },
+      err => {
+        console.log(err);
+        return false;
+      });
     this.refreshBindings();
   }
 
   public onDeviceDataSubmit(view) {
     let devicesArray = [];
+    let deviceColorArray = ["#FAA43A", "#5DA5DA", "#7F8C8D"];
     this.authService.getDeviceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension4"], this.inputAll["sort3"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
       console.log(data);
       for(var i=0; i<3; i++) { //only need 3: mobile, desktop, tablet
-        devicesArray.push({"device": data.rows[i][0], "views": data.rows[i][1]}); 
+        devicesArray.push({"device": data.rows[i][0], "views": data.rows[i][1], "color": deviceColorArray[i]}); 
         console.log(data.rows[i]);
       }
       this.devices = devicesArray;
-      this.onAnalyticsSubmit(view, devicesArray);
+      this.onCountryDataSubmit(this.inputAll["views"][0]);
+      },
+      err => {
+        console.log(err);
+        return false;
+      });
+
+    this.refreshBindings();
+  } 
+
+  public onCountryDataSubmit(view) {
+    let topCountrysArray = [];
+    let countryColorArray = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"];
+    this.authService.getCountryData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric3"], this.inputAll["dimension2"], this.inputAll["sort2"], this.inputAll["maxCountries"], this.inputAll["token"], view["id"]).subscribe(data => {
+      console.log(data);
+      for(var i=0; i<this.inputAll["maxCountries"]; i++) {
+        topCountrysArray.push({"country": data.rows[i][0], "views": data.rows[i][1], "color": countryColorArray[i]}); 
+      }
+      this.topCountrys = topCountrysArray;
+      this.createChart();
       },
       err => {
         console.log(err);
@@ -230,344 +235,286 @@ export class BarchartComponent implements OnInit {
     this.refreshBindings();
   }
 
+  public createChart() {
 
-  public onAnalyticsSubmit(view, devicesArray) {
-    console.log("In onAnalyticsSubmit");
-    var pageviewArray = [];
-    var count = 0;
-
-    for (var i = 0; i < this.inputAll["firstDays"].length; i++) {
-
-     this.authService.getGoogleData(this.inputAll["firstDays"][i], this.inputAll["lastDays"][i], this.inputAll["metric1"], this.inputAll["token"], view["id"]).subscribe(data => {
-        count++;
-        pageviewArray.push({"pageName" : view["name"], "views": parseInt(data.totalsForAllResults["ga:pageviews"]), "month": data.query["start-date"]});
-
-        //sort array if arrived out of sequence
-        if(count == this.inputAll["firstDays"].length) {
-          pageviewArray.sort((a,b) => {
-            if(a.month < b.month)
-              return -1;
-            if(a.month > b.month)
-              return 1;
-            return 0;
-          });
-        console.log(pageviewArray); 
-        this.createChart(pageviewArray, devicesArray, view);
-        }  
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    }
-    this.refreshBindings();
-  }
-
-    
-  public createChart(dataset, devicesArray, view) {
+    d3.select("svg").remove();
+    d3.select("svg2").remove();
+    d3.select("svg3").remove();
+    d3.select("svg4").remove();
+    d3.select("svg5").remove();
 
     console.log("in createChart");
-    console.log(dataset);
-    console.log(devicesArray);
-    console.log(view);
-    const cmajNewsScale = 0.022;
-    const cmajBlogsScale = 0.05;
-    const cmajCaScale = 0.0015;
-    const cmajOpenScale = 0.025;
-    const cmajMobileScale = 0.0055;
+    let dataset1 = this.pageviewsArray.reverse();
+    console.log(dataset1);
+    let w = 500;
+    let h = 500;
+    let barPadding = 3;
 
-      d3.selectAll("svg").remove();
-
-      var w = 500;
-      var h = 500;
-      var barPadding = 3;
-
-      var svg = d3.select("#barchart1")
-        .append("svg")
-        .attr("width", w)
-        .attr("height", h)
-        .attr("align", "center");
+    let svg = d3.select("#barchartPageviews")
+      .append("svg")
+      .attr("width", w)
+      .attr("height", h + 30)
+      .attr("align", "center");
 
 
-      svg.selectAll("rect")  
-        .data(dataset)
-        .enter()
-        .append("rect")
-        .attr("x", function(d, i) {
-          return i * (w / dataset.length);
-        })
-        .attr("y", function(d) {
-          if(d["pageName"] == "CMAJ News")
-            return h - (d["views"] * cmajNewsScale);
-          if(d["pageName"] == "CMAJ Blogs")
-            return h - (d["views"] * cmajBlogsScale);
-          if(d["pageName"] == "CMAJ.CA")
-            return h - (d["views"] * cmajCaScale);
-          if(d["pageName"] == "CMAJ Open")
-            return h - (d["views"] * cmajOpenScale);
-          if(d["pageName"] == "CMAJ Mobile")
-            return h - (d["views"] * cmajMobileScale);
-          else
-            return h - (d["views"] * 0.002);
-        })
-        .attr("width", w /dataset.length - barPadding)
-        .attr("height", function(d) {
-         if(d["pageName"] == "CMAJ News")
-            return d["views"] * cmajNewsScale;
-          if(d["pageName"] == "CMAJ Blogs")
-            return d["views"] * cmajBlogsScale;
-          if(d["pageName"] == "CMAJ.CA")
-            return d["views"] * cmajCaScale;
-          if(d["pageName"] == "CMAJ Open")
-            return d["views"] * cmajOpenScale;
-          if(d["pageName"] == "CMAJ Mobile")
-            return d["views"] * cmajMobileScale;
-          else
-            return d["views"] * 0.002;
-        })
-        .attr("fill", "#DE8D47");
+    svg.selectAll("rect")  
+      .data(dataset1)
+      .enter()
+      .append("rect")
+      .attr("x", function(d, i) {
+        return i * (w / dataset1.length);
+      })
+      .attr("y", function(d) {
+          return h - (d["views"] * 0.02);
+      })
+      .attr("width", w /dataset1.length - barPadding)
+      .attr("height", function(d) {
+          return (d["views"] * 0.02);
+      })
+      .attr("fill", "#DE8D47");
       
       svg.selectAll("text.values")
-        .data(dataset)
+        .data(dataset1)
         .enter()
         .append("text")
         .text(function(d) {
           return (d["views"] * 0.001).toFixed(1);
         })
         .attr("x", function (d, i) {
-          return i * (w / dataset.length) + 25;
+          return i * (w / dataset1.length) + 25;
         })
         .attr("y", function (d) {
-          if(d["pageName"] == "CMAJ News")
-            return h - (d["views"] * cmajNewsScale) - 10;
-          if(d["pageName"] == "CMAJ Blogs")
-            return h - (d["views"] * cmajBlogsScale) - 10;
-          if(d["pageName"] == "CMAJ.CA")
-            return h - (d["views"] * cmajCaScale) - 10;
-          if(d["pageName"] == "CMAJ Open")
-            return h - (d["views"] * cmajOpenScale) - 10;
-          if(d["pageName"] == "CMAJ Mobile")
-            return h - (d["views"] * cmajMobileScale) - 10;
-          else
             return h - (d["views"] * 0.02) - 10;
         })
         .attr("font-family", "arial")
         .attr("font-size", "16px")
-        .attr("fill", "white");
+        .attr("fill", "black");
 
       svg.selectAll("text.labels")
-        .data(dataset)
+        .data(dataset1)
         .enter()
         .append("text")
         .text(function(d) {
           return d["month"].slice(0,7);
         })
         .attr("x", function (d, i) {
-          return i * (w / dataset.length) + 15;
+          return i * (w / dataset1.length) + 15;
         })
         .attr("y", function (d) {
-          return h - 5;
+          return h + 15;
         })
         .attr("font-family", "arial")
         .attr("font-size", "14px")
-        .attr("fill", "white");
+        .attr("fill", "black");
 
 
-    var w2 = 300;
-    var h2 = 500;
-    var barPadding2 = 3;
-
-    var svg2 = d3.select("#barchart2")
-      .append("svg")
-      .attr("width", w2)
-      .attr("height", h2)
-      .attr("align", "center");
 
 
-    svg2.selectAll("rect")  
-      .data(devicesArray)
-      .enter()
-      .append("rect")
-      .attr("x", function(d, i) {
-        return i * (w2 / devicesArray.length);
-      })
-      .attr("y", function(d) {
-        if(view["name"] == "CMAJ News")
-          return h2 - (d["views"] * (cmajNewsScale * 2));
-        if(view["name"] == "CMAJ Blogs")
-          return h2 - (d["views"] * (cmajBlogsScale * 1.6));
-          //return h2 - (d["views"] * (0.8));
-        if(view["name"] == "CMAJ.CA")
-          return h2 - (d["views"] * (cmajCaScale * 1.4));
-        if(view["name"] == "CMAJ Open")
-          return h2 - (d["views"] * (cmajOpenScale * 1.2));
-        if(view["name"] == "CMAJ Mobile")
-          return h2 - (d["views"] * (cmajMobileScale * 1.5));
-        else
-          return h2 - (d["views"] * 0.002);
-      })   
-      .attr("width", w2 /devicesArray.length - barPadding2)
-      .attr("height", function(d) {
-        return (d["views"] * 0.08);
-      })
-      .attr("fill", "#DE8D47");
+      let w2 = 250;
+      let h2 = 500;
+      let dataset2 = this.devices;
+
+      let svg2 = d3.select("#barchart2")
+        .append("svg")
+        .attr("width", w2)
+        .attr("height", h2 + 30)
+        .attr("align", "center");
+
+
+      svg2.selectAll("rect")  
+        .data(dataset2)
+        .enter()
+        .append("rect")
+        .attr("x", function(d, i) {
+          return i * (w2 / dataset2.length);
+        })
+        .attr("y", function(d) {
+            return h2 - (d["views"] * 0.02);
+        })
+        .attr("width", w2 /dataset2.length - barPadding)
+        .attr("height", function(d) {
+            return (d["views"] * 0.02);
+        })
+        .attr("fill", "#DE8D47");
       
-    svg2.selectAll("text.values")
-      .data(devicesArray)
-      .enter()
-      .append("text")
-      .text(function(d) {
-        return d["views"];
-      })
-      .attr("x", function (d, i) {
-        return i * (w2 / devicesArray.length) + 25;
-      })
-      .attr("y", function (d) {
-        if(view["name"] == "CMAJ News")
-          return h2 - (d["views"] * (cmajNewsScale * 2)) - 10;
-        if(view["name"] == "CMAJ Blogs")
-          return h2 - (d["views"] * (cmajBlogsScale * 1.6)) - 10;
-        if(view["name"] == "CMAJ.CA")
-          return h2 - (d["views"] * (cmajCaScale * 1.4)) - 15;
-        if(view["name"] == "CMAJ Open")
-          return h2 - (d["views"] * (cmajOpenScale * 1.2)) - 10;
-        if(view["name"] == "CMAJ Mobile")
-          return h2 - (d["views"] * (cmajMobileScale * 1.5)) - 10;
-        else
-          return h2 - (d["views"] * 0.002);
-      })   
-      .attr("font-family", "arial")
-      .attr("font-size", "16px")
-      .attr("fill", "white");
+      svg2.selectAll("text.values")
+        .data(dataset2)
+        .enter()
+        .append("text")
+        .text(function(d) {
+          return (d["views"] * 0.001).toFixed(1);
+        })
+        .attr("x", function (d, i) {
+          return i * (w2 / dataset2.length) + 25;
+        })
+        .attr("y", function (d) {
+            return h2 - (d["views"] * 0.02) - 10;
+        })
+        .attr("font-family", "arial")
+        .attr("font-size", "16px")
+        .attr("fill", "black");
 
-    svg2.selectAll("text.labels")
-      .data(devicesArray)
-      .enter()
-      .append("text")
-      .text(function(d) {
-        return d["device"];
-      })
-      .attr("x", function (d, i) {
-        return i * (w2 / devicesArray.length) + 15;
-      })
-      .attr("y", function (d) {
-        return h2 - 5;
-      })
-      .attr("font-family", "arial")
-      .attr("font-size", "14px")
-      .attr("fill", "white");
+      svg2.selectAll("text.labels")
+        .data(dataset2)
+        .enter()
+        .append("text")
+        .text(function(d) {
+          return d["device"];
+        })
+        .attr("x", function (d, i) {
+          return i * (w2 / dataset2.length) + 15;
+        })
+        .attr("y", function (d) {
+          return h2 + 15;
+        })
+        .attr("font-family", "arial")
+        .attr("font-size", "14px")
+        .attr("fill", "black");
 
-    //let dataset3 = [
-    //             {"label":"one", "value":20}, 
-    //             {"label":"two", "value":50}, 
-    //             {"label":"three", "value":30}
-    //           ];
-    //console.log(dataset3);
-//
-//    
-//    var w3:number = 300;
-//    var h3:number = 300;
-//    var radius:number = Math.min(w3, h3)/2; 
-//
-//    console.log(w3, h3, radius);
-//
-//    var color:any = d3.scaleOrdinal()
-//      .range(["#2C93E8","#838690","#F56C4E"]);
-//
-//    console.log(color);
-//
-//    var svg3:any = d3.select("#piechart1")
-//      .append("svg:svg")
-//      .data([dataset3])
-//        .attr("width", w3)
-//        .attr("height", h3)
-//      .append("svg:g")
-//        .attr("transform", "translate(" + radius + "," + radius + ")");
-//
-//
-//    var arc:any = d3.arc()
-//      .outerRadius(radius)
-//
+      let w3 = 400;
+      let h3 = 400;
+      let r1 = Math.min(w3,h3)/2; 
+      let innerRadius = r1 - 50;
+      let outerRadius = r1 - 10;
+      let dataset3 = this.devices;
+      let color = ["#FAA43A", "#5DA5DA", "#7F8C8D"]; 
 
-    //var pie:any = d3.pie()(data.map(function(d) { return d["presses"];}))
+      console.log(dataset3);
 
-    //var arc:any = d3.arc()
-    //  .innerRadius(0)
-    //  .outerRadius(radius);
+      let arc = d3.arc()
+        .outerRadius(r1 - 10)
+        .innerRadius(0);
 
-    //var labelArc: any = d3.arc()
-    //  .outerRadius(radius - 40)
-    //  .innerRadius(radius - 40);
+      let labelArc = d3.arc()
+        .outerRadius(r1 - 40)
+        .innerRadius(r1 - 40);
 
-    //var path:any = svg.selectAll("path")
-    //  .data(pie)
-    //  .enter()
-    //  .append("path")
-    //  .attr('d', arc)
-    //  .style("fill", function(d) {return color(d.data["letter"]);});
+      let pie = d3.pie()
+        .sort(null)
+        .value((function (d:any) {return d}));
+
+      let svg3 = d3.select("#piechartDevices")
+        .append("svg")
+        .attr("width", w3)
+        .attr("height", h3 + 30)
+        .attr("align", "center")
+        .append("g")
+        .attr("transform", "translate(" + w3 / 2 + "," + h3 / 2 + ")");
+
+      let values = dataset3.map(data => data.views);
+      console.log(values);
+   
+      let g = svg3.selectAll(".arc")
+        .data(pie(values))
+        .enter().append("g")
+        .attr("class", "arc");
 
 
-    //var path = svg.selectAll('path')
-     // .data(pie(data))
-     // .enter()
-     // .append('path')
-     // .attr('d', arc)
-     // .attr('fill', function(d, i) {
-     //   return color(d.data.label)
-     // })
+      g.append("path")
+        .attr("d", <any>arc)
+        .style("fill", function(d, i)  {
+          console.log(i);
+          //return "#98abc5"; 
+          return color[i];
+        });
 
-      //this.createPieChart();
 
-      this.refreshBindings();
+      let w4 = 400;
+      let h4 = 400;
+      let r2 = Math.min(w4,h4)/2; 
+      let innerRadius2 = r2 - 50;
+      let outerRadius2 = r2 - 10;
+      let dataset4 = this.topSources;
+      let colorSources = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"]; 
 
-  }
+      console.log(dataset4);
 
-  public createPieChart() {
+      let arc2 = d3.arc()
+        .outerRadius(r2 - 10)
+        .innerRadius(0);
+
+      let labelArc2 = d3.arc()
+        .outerRadius(r2 - 40)
+        .innerRadius(r2 - 40);
+
+      let pie2 = d3.pie()
+        .sort(null)
+        .value((function (d:any) {return d}));
+
+      let svg4 = d3.select("#piechartSources")
+        .append("svg")
+        .attr("width", w4)
+        .attr("height", h4 + 30)
+        .attr("align", "center")
+        .append("g")
+        .attr("transform", "translate(" + w4 / 2 + "," + h4 / 2 + ")");
+
+      let values2 = dataset4.map(data => data.views);
+      console.log(values2);
+   
+      let g2 = svg4.selectAll(".arc")
+        .data(pie2(values2))
+        .enter().append("g")
+        .attr("class", "arc");
+
+      g2.append("path")
+        .attr("d", <any>arc2)
+        .style("fill", function(d, i)  {
+          console.log(i);
+          return colorSources[i];
+        });
+
+
+      let w5 = 400;
+      let h5 = 400;
+      let r3 = Math.min(w5,h5)/2; 
+      let innerRadius3 = r3 - 50;
+      let outerRadius3 = r3 - 10;
+      let dataset5 = this.topCountrys;
+      let colorCountry = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"]; 
+
+      console.log(dataset5);
+
+      let arc3 = d3.arc()
+        .outerRadius(r2 - 10)
+        .innerRadius(0);
+
+      let labelArc3 = d3.arc()
+        .outerRadius(r3 - 40)
+        .innerRadius(r3 - 40);
+
+      let pie3 = d3.pie()
+        .sort(null)
+        .value((function (d:any) {return d}));
+
+      let svg5 = d3.select("#piechartCountry")
+        .append("svg")
+        .attr("width", w5)
+        .attr("height", h5 + 30)
+        .attr("align", "center")
+        .append("g")
+        .attr("transform", "translate(" + w5 / 2 + "," + h5 / 2 + ")");
+
+      let values3 = dataset5.map(data => data.views);
+      console.log(values3);
+   
+      let g3 = svg5.selectAll(".arc")
+        .data(pie3(values3))
+        .enter().append("g")
+        .attr("class", "arc");
+
+      g3.append("path")
+        .attr("d", <any>arc3)
+        .style("fill", function(d, i)  {
+          console.log(i);
+          return colorCountry[i];
+        });
+
+        this.refreshBindings();
+
+        return;
     
-    let w = 300;
-    let h = 300;
-    let r = 100;
-
-    let color = d3.scaleOrdinal()
-      .range(["#2C93E8","#838690","#F56C4E"]);
-
-    let data = [{"label":"one", "value":20}, 
-                {"label":"two", "value":50}, 
-                {"label":"three", "value":30}];
-
-    console.log(data);
-
-    let svg = d3.select("#piechart1")
-      .append("svg")
-      .data([data])
-        .attr("width", w)
-        .attr("height", h)
-      .append("g") 
-        .attr("transform", "translate(" + r + "," + r + ")")       
-
-   let arc = d3.arc()        
-      .innerRadius(0)
-      .outerRadius(r);
-
-    let pie = d3.pie()
-      .value(function(d) {return d["value"];})
-      .sort(null);
-
-
-
-
-
-
-
-
-
-
-    this.refreshBindings();
-
-
   }
-
-
 
 
 

@@ -15,10 +15,10 @@ export class AuthService {
   getGoogleData(date1, date2, metric1, accessToken, viewID) {
 
     //https://ga-dev-tools.appspot.com/query-explorer/
-    console.log("in AuthServices getGoogleData");
+    //console.log("in AuthServices getGoogleData");
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
-    console.log("Google Request: " + 'https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken);
+    //console.log("Google Request: " + 'https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken);
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken)
       .map(res => res.json());
   } 
