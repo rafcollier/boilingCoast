@@ -2,6 +2,10 @@ body {
   margin-top: 50px;
 }
 
+.button-style {
+  background-color: #fff;
+}
+
 .arc text {
   font: 10px sans-serif;
   text-anchor: middle;
@@ -46,6 +50,14 @@ body {
   flex-wrap: wrap;
 }
 
+.flex-container2 {
+  display: flex;
+  flex-direction: row;
+  align-items: right;
+  justify-content: right;
+  flex-wrap: wrap;
+}
+
 .flex-item1 {
   padding: 2px;
   margin: 2px;
@@ -59,7 +71,7 @@ body {
 .flex-item2 {
   padding: 5px;
   margin: 5px;
-  color: white;
+  color: black;
   font-weight: bold;
   font-size: 3em;
   text-align: left;

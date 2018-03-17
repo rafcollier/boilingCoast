@@ -13,18 +13,21 @@ export class AuthService {
   constructor(private http: Http) { }
 
   getGoogleData(date1, date2, metric1, accessToken, viewID) {
-
     //https://ga-dev-tools.appspot.com/query-explorer/
-    //console.log("in AuthServices getGoogleData");
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
-    //console.log("Google Request: " + 'https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken);
+    return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken)
+      .map(res => res.json());
+  } 
+
+  getUserData(date1, date2, metric1, accessToken, viewID) {
+    let headers = new Headers();
+    headers.append('Content-Type', 'application/json');
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric1 + '&access_token=' + accessToken)
       .map(res => res.json());
   } 
 
   getUniquePageviews(date1, date2, metric, dimension, sort, max, accessToken, viewID) {
-
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric + '&dimensions=ga%3A' + dimension  + '&sort=-ga%3A' + sort + '&max-results=' + max + '&access_token=' + accessToken)
@@ -32,7 +35,6 @@ export class AuthService {
   } 
 
   getCountryData(date1, date2, metric, dimension, sort, max, accessToken, viewID) {
-
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric + '&dimensions=ga%3A' + dimension  + '&sort=-ga%3A' + sort + '&max-results=' + max + '&access_token=' + accessToken)
@@ -40,7 +42,6 @@ export class AuthService {
   } 
 
   getSourceData(date1, date2, metric, dimension, sort, max, accessToken, viewID) {
-
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric + '&dimensions=ga%3A' + dimension  + '&sort=-ga%3A' + sort + '&max-results=' + max + '&access_token=' + accessToken)
@@ -48,7 +49,6 @@ export class AuthService {
   } 
 
   getDeviceData(date1, date2, metric, dimension, sort, max, accessToken, viewID) {
-
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     return this.http.get('https://www.googleapis.com/analytics/v3/data/ga?ids=ga%3A' + viewID + '&start-date=' + date1 + '&end-date=' + date2 + '&metrics=ga%3A' + metric + '&dimensions=ga%3A' + dimension  + '&sort=-ga%3A' + sort + '&max-results=' + max + '&access_token=' + accessToken)

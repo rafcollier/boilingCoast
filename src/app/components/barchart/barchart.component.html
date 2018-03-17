@@ -1,117 +1,343 @@
-<div class = "d3-chart" id = "chart1" #chart1></div>
-
-<hr>
-<div class = "flex-container1">
+<div class = "flex-container2">
   <div class = "flex-item1">
-    <h1>Overall Pageviews </h1>
+    <h4>&#9679;</h4> 
+  </div>
+  <div class = "flex-item1">
+    <a href="" onClick="return false;">
+      <span (click)="onButtonOneClick()"> <h4>News</h4> </span>
+    </a>
+  </div>
+  <div class = "flex-item1">
+    <h4>&#9679;</h4> 
+  </div>
+  <div class = "flex-item1">
+    <a href="" onClick="return false;">
+      <span (click)="onButtonTwoClick()"> <h4>CMAJ</h4> </span>
+    </a>
+  </div>
+  <div class = "flex-item1">
+    <h4>&#9679;</h4> 
+  </div>
+  <div class = "flex-item1">
+    <a href="" onClick="return false;">
+      <span (click)="onButtonThreeClick()"> <h4>CMAJ Blogs</h4> </span>
+    </a>
+  </div>
+  <div class = "flex-item1">
+    <h4>&#9679;</h4> 
+  </div>
+</div>
+
+<div *ngIf="showDataNews">
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Top Sources</h1>
     </div>
   </div>
-<hr>
+  <hr>
 
-
-<div class = "flex-container1">
-  <div *ngIf="showData">
-    <div class = "flex-container1">
-      <div class = "flex-item1" id="barchartPageviews">
+   <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopSourcesNews"> 
+      <div class = "d3-chart" id = "chartTopSourcesNews" #chartTopSourcesNews></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topSource of topSources; let i = index">
+        <div><h4 [style.color]="topSource.color"> {{ topSource.source }} - {{ topSource.views }}  </h4></div>
       </div>
     </div>
   </div>
-</div>
 
-<hr>
-<div class = "flex-container1">
-  <div class = "flex-item1">
-    <h1>Top Pages This Month</h1>
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Monthly Pageviews</h1>
     </div>
   </div>
-<hr>
+  <hr>
 
-<div class = "flex-container1">
-  <div class = "flex-item2">
-    <div *ngFor="let topPage of topPages; let i = index">
-      <div><h2><span class="blue-font"> {{ topPage.views }} PAGEVIEWS</span></h2></div>
-      <div><h6>{{ topPage.url }}</h6></div>
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopPageviewsNews"> 
+      <div class = "d3-chart" id = "chartTopPageviewsNews" #chartTopPageviewsNews></div>
     </div>
   </div>
-</div>
 
-<div class = "d3-chart" id = "chart2" #chart2></div>
 
-<hr>
-<div class = "flex-container1">
-  <div class = "flex-item1">
-    <h1>Devices This Month</h1>
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Top Devices</h1>
     </div>
   </div>
-<hr>
+  <hr>
 
-<div class = "flex-container1">
-  <div *ngIf="showData">
-    <div class = "flex-container1">
-
-      <div class = "flex-item1" id="piechartDevices"> </div>
-      <div class = "flex-item2">
-        <div *ngFor="let device of devices; let i = index">
-          <div><h2 [style.color]="device.color"> {{ device.device }} - {{ device.views }}  </h2></div>
-        </div>
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopDevicesNews"> 
+      <div class = "d3-chart" id = "chartTopDevicesNews" #chartTopDevicesNews></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topDevice of topDevices; let i = index">
+        <div><h4 [style.color]="topDevice.color"> {{ topDevice.device }} - {{ topDevice.views }}  </h4></div>
       </div>
-
     </div>
   </div>
-</div>
 
-<div class = "d3-chart" id = "chart3" #chart3></div>
-
-<hr>
-<div class = "flex-container1">
-  <div class = "flex-item1">
-    <h1>Top Sources This Month</h1>
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Top Pages</h1>
     </div>
   </div>
-<hr>
+  <hr>
 
-<div class = "flex-container1">
-  <div *ngIf="showData">
-    <div class = "flex-container1">
-
-      <div class = "flex-item1" id="piechartSources"> </div>
-      <div class = "flex-item2">
-        <div *ngFor="let topSource of topSources; let i = index">
-          <div><h2 [style.color]="topSource.color"> {{ topSource.source }} - {{ topSource.views }}  </h2></div>
-        </div>
+  <div class = "flex-container1">
+    <div class = "flex-item2">
+      <div *ngFor="let topPage of topPages; let i = index">
+        <div><h2><span class="blue-font"> {{ topPage.views }} </span></h2></div>
+        <div><h6>{{ topPage.url }}</h6></div>
       </div>
-      
     </div>
   </div>
-</div>
 
-<div class = "d3-chart" id = "chart4" #chart4></div>
 
-<hr>
-<div class = "flex-container1">
-  <div class = "flex-item1">
-    <h1>Top Countries This Month</h1>
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Top Countries</h1>
     </div>
   </div>
-<hr>
+  <hr>
 
-<div class = "flex-container1">
-  <div *ngIf="showData">
-    <div class = "flex-container1">
 
-      <div class = "flex-item1" id="piechartCountry"> </div>
-      <div class = "flex-item2">
-        <div *ngFor="let topCountry of topCountrys; let i = index">
-          <div><h2 [style.color]="topCountry.color"> {{ topCountry.country }} - {{ topCountry.views }}  </h2></div>
-        </div>
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopCountriesNews"> 
+      <div class = "d3-chart" id = "chartTopCountriesNews" #chartTopCountriesNews></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topCountry of topCountries; let i = index">
+        <div><h4 [style.color]="topCountry.color"> {{ topCountry.country }} - {{ topCountry.views }}  </h4></div>
       </div>
-      
     </div>
   </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ News - Monthly Users</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopUsersNews"> 
+      <div class = "d3-chart" id = "chartTopUsersNews" #chartTopUsersNews></div>
+    </div>
+  </div>
+
 </div>
-  
+
+<div *ngIf="showDataMain">
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ.CA - Top Sources</h1>
+    </div>
+  </div>
+  <hr>
+    
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopSourcesMain"> 
+      <div class = "d3-chart" id = "chartTopSourcesMain" #chartTopSourcesMain></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topSource of topSources; let i = index">
+        <div><h4 [style.color]="topSource.color"> {{ topSource.source }} - {{ topSource.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ - Monthly Pageviews</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopPageviewsMain"> 
+      <div class = "d3-chart" id = "chartTopPageviewsMain" #chartTopPageviewsMain></div>
+    </div>
+  </div>
 
 
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ.CA - Top Devices</h1>
+    </div>
+  </div>
+  <hr>
+
+   <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopDevicesMain"> 
+      <div class = "d3-chart" id = "chartTopDevicesMain" #chartTopDevicesMain></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topDevice of topDevices; let i = index">
+        <div><h4 [style.color]="topDevice.color"> {{ topDevice.device }} - {{ topDevice.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ - Monthly Users</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopUsersMain"> 
+      <div class = "d3-chart" id = "chartTopUsersMain" #chartTopUsersMain></div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ.CA - Top Countries</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopCountriesMain"> 
+      <div class = "d3-chart" id = "chartTopCountriesMain" #chartTopCountriesMain></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topCountry of topCountries; let i = index">
+        <div><h4 [style.color]="topCountry.color"> {{ topCountry.country }} - {{ topCountry.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div *ngIf="showDataBlogs">
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Top Sources</h1>
+    </div>
+  </div>
+  <hr>
+    
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopSourcesBlogs"> 
+      <div class = "d3-chart" id = "chartTopSourcesBlogs" #chartTopSourcesBlogs></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topSource of topSources; let i = index">
+        <div><h4 [style.color]="topSource.color"> {{ topSource.source }} - {{ topSource.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Monthly Pageviews</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopPageviewsBlogs"> 
+      <div class = "d3-chart" id = "chartTopPageviewsBlogs" #chartTopPageviewsBlogs></div>
+    </div>
+  </div>
+
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Top Devices</h1>
+    </div>
+  </div>
+  <hr>
+
+   <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopDevicesBlogs"> 
+      <div class = "d3-chart" id = "chartTopDevicesBlogs" #chartTopDevicesBlogs></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topDevice of topDevices; let i = index">
+        <div><h4 [style.color]="topDevice.color"> {{ topDevice.device }} - {{ topDevice.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Top Pages</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item2">
+      <div *ngFor="let topPage of topPages; let i = index">
+        <div><h2><span class="blue-font"> {{ topPage.views }} </span></h2></div>
+        <div><h6>{{ topPage.url }}</h6></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Top Countries</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopCountriesBlogs"> 
+      <div class = "d3-chart" id = "chartTopCountries" #chartTopCountriesMain></div>
+    </div>
+    <div class = "flex-item2">
+      <div *ngFor="let topCountry of topCountries; let i = index">
+        <div><h4 [style.color]="topCountry.color"> {{ topCountry.country }} - {{ topCountry.views }}  </h4></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div class = "flex-container1">
+    <div class = "flex-item1">
+      <h1>CMAJ Blogs - Monthly Users</h1>
+    </div>
+  </div>
+  <hr>
+
+  <div class = "flex-container1">
+    <div class = "flex-item1" id="chartTopUsersBlogs"> 
+      <div class = "d3-chart" id = "chartTopUsersBlogs" #chartTopUsersBlogs></div>
+    </div>
+  </div>
+
+
+</div>
 
 
 

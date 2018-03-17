@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation, NgZone } from '@angular/core';
+import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation, NgZone, ChangeDetectorRef } from '@angular/core';
 import * as d3 from 'd3';
 import {Router} from '@angular/router';
 import {ActivatedRoute} from '@angular/router';
@@ -28,24 +28,29 @@ export class BarchartComponent implements OnInit {
   private yAxis: any;
   private sub: any;
 
-  showData = false;
+  pieChartColors: Array <any> = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"];
+  viewIndex: any = 0;
+  showDataNews: Boolean = true;
+  showDataMain: Boolean = false;
+  showDataBlogs: Boolean = false;
   inputAll = {};
-  devices: Array<any> = [];
   pageviewsArray: Array<any> = [];
+  usersArray: Array<any> = [];
   topPages: Array<any> = [];
-  topCountrys: Array<any> = [];
   topSources: Array<any> = [];
+  topDevices: Array<any> = [];
+  topCountries: Array<any> = [];
   
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private zone: NgZone
+    private zone: NgZone,
+    private ref: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
 
-   this.showData = false;
    let inputObj = this.getInputData();
    let firstDaysArr = this.getDates(inputObj["firstDay"]);
    let lastDaysArr = this.getDates(inputObj["lastDay"]);
@@ -63,6 +68,7 @@ export class BarchartComponent implements OnInit {
      "metric1": "pageviews",
      "metric2": "uniquePageviews",
      "metric3": "sessions",
+     "metric4": "users",
      "dimension": "pagePath",
      "dimension2": "country",
      "dimension3": "source",
@@ -74,13 +80,12 @@ export class BarchartComponent implements OnInit {
      "maxSources": 7,
      "maxCountries": 7 
    }
-   this.callAnalytics();
+   this.onButtonOneClick();
   }
   
 
   //Get form data passed in from enterkey component as routing parameters
   getInputData() {
-    console.log("In getInputData");
     let dataInput = {};
     this.sub = this.route
     .queryParams
@@ -92,9 +97,8 @@ export class BarchartComponent implements OnInit {
     return dataInput;
   }
 
-  //Get Array of 5 previous months (first or last days)
+  //Get Array of previous months (first or last days)
   getDates(day) {
-    console.log("In getDates");
     const num = 6;
     let objArr = []; 
     let strArr = []; 
@@ -132,25 +136,61 @@ export class BarchartComponent implements OnInit {
     var lastDate = new Date (date.getFullYear(), date.getMonth() + 1, 0);
     return lastDate;
   }
-
-  public callAnalytics() {
-    this.showData = true;
-    this.onAnalyticsSubmit(this.inputAll["views"][0], 0);
+ 
+  //News button 
+  public onButtonOneClick() {
+    this.showDataNews = true;
+    this.showDataMain = false;
+    this.showDataBlogs = false; 
+    this.callAnalyticsCommon(1, "chartTopSourcesNews", "chartTopPageviewsNews", "chartTopDevicesNews", "chartTopCountriesNews", "chartTopUsersNews", 0, 0.015, 0.030);
+  }
+  //CMAJ.CA button
+  public onButtonTwoClick() {
+    this.showDataNews = false;
+    this.showDataMain = true;
+    this.showDataBlogs = false;
+    this.callAnalyticsCommon(0, "chartTopSourcesMain", "chartTopPageviewsMain", "chartTopDevicesMain", "chartTopCountriesMain", "chartTopUsersMain", 0, 0.0012, 0.0025);
   }
 
-  public onAnalyticsSubmit(view, count) {
-    console.log("In onAnalyticsSubmit");
+  //CMAJ Blogs button
+  public onButtonThreeClick() {
+    this.showDataBlogs = true;
+    this.showDataMain = false;
+    this.showDataNews = false;
+    this.callAnalyticsCommon(2, "chartTopSourcesBlogs", "chartTopPageviewsBlogs", "chartTopDevicesBlogs", "chartTopCountriesBlogs", "chartTopUsersBlogs", 0, 0.02, 0.04);
+  }
 
-    this.authService.getGoogleData(this.inputAll["firstDays"][count], this.inputAll["lastDays"][count], this.inputAll["metric1"], this.inputAll["token"], view["id"]).subscribe(data => {
-      this.pageviewsArray.push({"pageName" : view["name"], "views": parseInt(data.totalsForAllResults["ga:pageviews"]), "month": data.query["start-date"]});
+ 
+  public callAnalyticsCommon(viewIndex, chartID1, chartID2, chartID3, chartID4, chartID5, count, scale1, scale2) {
+    this.onSourceDataSubmit(this.inputAll["views"][viewIndex], chartID1);  
+    this.onPageviewsDataSubmit(this.inputAll["views"][viewIndex], chartID2, count, scale1);
+    this.onUserDataSubmit(this.inputAll["views"][viewIndex], chartID5, count, scale2);
+    this.onDeviceDataSubmit(this.inputAll["views"][viewIndex], chartID3);
+    this.onUniquePageviewsSubmit(this.inputAll["views"][viewIndex]);
+    this.onCountriesDataSubmit(this.inputAll["views"][viewIndex], chartID4);
+  }
 
-      if(count < 5) {
-        this.onAnalyticsSubmit(view, count+1)
+
+  public onPageviewsDataSubmit(view, chartID, count, chartScale) {
+
+    this.authService.getGoogleData(this.inputAll["firstDays"][count], 
+                                   this.inputAll["lastDays"][count], 
+                                   this.inputAll["metric1"], 
+                                   this.inputAll["token"], 
+                                   view["id"]).subscribe(data => {
+      this.pageviewsArray.push({"pageName" : view["name"], 
+                                "views": parseInt(data.totalsForAllResults["ga:pageviews"]), 
+                                "month": data.query["start-date"]}
+                              );
+      if (count < 5) {
+        setTimeout(() => {
+          this.onPageviewsDataSubmit(view, chartID, count + 1, chartScale); 
+        }, 300);
       }
       else {
-        console.log(this.pageviewsArray);
-        this.onUniquePageviewsSubmit(this.inputAll["views"][0]);
-        return;
+        this.createBarChart(this.pageviewsArray.reverse(), chartID, chartScale); 
+        this.pageviewsArray =[];
+        this.ref.detectChanges();
       }
     },
       err => {
@@ -158,147 +198,189 @@ export class BarchartComponent implements OnInit {
         return false;
     });
 
-    this.refreshBindings();
+  }
+
+  public onUserDataSubmit(view, chartID, count, chartScale) {
+
+    this.authService.getUserData(this.inputAll["firstDays"][count], 
+                                   this.inputAll["lastDays"][count], 
+                                   this.inputAll["metric4"], 
+                                   this.inputAll["token"], 
+                                   view["id"]).subscribe(data => {
+                                     console.log(data);
+      this.usersArray.push({"pageName" : view["name"], 
+                                "views": parseInt(data.totalsForAllResults["ga:users"]), 
+                                "month": data.query["start-date"]}
+                              );
+      if (count < 5) {
+        setTimeout(() => {
+          this.onUserDataSubmit(view, chartID, count + 1, chartScale); 
+        }, 300);
+      }
+      else {
+        this.createBarChart(this.usersArray.reverse(), chartID, chartScale); 
+        this.usersArray =[];
+      }
+    },
+      err => {
+        console.log(err);
+        return false;
+    });
+
   }
 
   public onUniquePageviewsSubmit(view) {
-    let topPagesArray = [];
-    this.authService.getUniquePageviews(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric2"], this.inputAll["dimension"], this.inputAll["sort"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
+
+    this.topPages = [];
+    this.authService.getUniquePageviews(this.inputAll["firstDays"][0], 
+                                        this.inputAll["lastDays"][0], 
+                                        this.inputAll["metric2"], 
+                                        this.inputAll["dimension"], 
+                                        this.inputAll["sort"], 
+                                        this.inputAll["max"], 
+                                        this.inputAll["token"], 
+                                        view["id"]).subscribe(data => {
       for(var i=0; i<this.inputAll["max"]; i++) {
-        topPagesArray.push({"url": data.rows[i][0], "views": data.rows[i][1]}); 
+        this.topPages.push({"url": data.rows[i][0], "views": data.rows[i][1]}); 
       }
-      this.topPages = topPagesArray;
-      this.onSourceDataSubmit(this.inputAll["views"][0]);
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    this.refreshBindings();
-    }
+      this.ref.detectChanges();
+    },
+    err => {
+      console.log(err);
+      return false;
+    });
 
-
-  public onSourceDataSubmit(view) {
-    let topSourcesArray = [];
-    let sourceColorArray = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"];
-    this.authService.getSourceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension3"], this.inputAll["sort3"], this.inputAll["maxSources"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
-      for(var i=0; i<this.inputAll["maxSources"]; i++) {
-        topSourcesArray.push({"source": data.rows[i][0], "views": data.rows[i][1], "color": sourceColorArray[i]}); 
-      }
-      this.topSources = topSourcesArray;
-      this.onDeviceDataSubmit(this.inputAll["views"][0]);
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    this.refreshBindings();
   }
 
-  public onDeviceDataSubmit(view) {
-    let devicesArray = [];
-    let deviceColorArray = ["#FAA43A", "#5DA5DA", "#7F8C8D"];
-    this.authService.getDeviceData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric1"], this.inputAll["dimension4"], this.inputAll["sort3"], this.inputAll["max"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
-      for(var i=0; i<3; i++) { //only need 3: mobile, desktop, tablet
-        devicesArray.push({"device": data.rows[i][0], "views": data.rows[i][1], "color": deviceColorArray[i]}); 
-        console.log(data.rows[i]);
-      }
-      this.devices = devicesArray;
-      this.onCountryDataSubmit(this.inputAll["views"][0]);
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
+  public onSourceDataSubmit(view, chartID) {
 
-    this.refreshBindings();
+    this.topSources = [];
+    this.authService.getSourceData(this.inputAll["firstDays"][0], 
+                                   this.inputAll["lastDays"][0], 
+                                   this.inputAll["metric1"], 
+                                   this.inputAll["dimension3"], 
+                                   this.inputAll["sort3"], 
+                                   this.inputAll["maxSources"], 
+                                   this.inputAll["token"], 
+                                   view["id"]).subscribe(data => {
+
+      for(var i=0; i<this.inputAll["maxSources"]; i++) {
+        this.topSources.push({"source": data.rows[i][0], "views": data.rows[i][1], "color": this.pieChartColors[i]}); 
+      }
+      this.ref.detectChanges();
+      this.createPieChart(this.topSources, chartID);
+     
+    },
+    err => {
+      console.log(err);
+      return false;
+    });
+
+  }
+
+  public onDeviceDataSubmit(view, chartID) {
+
+    this.topDevices = [];
+    this.authService.getDeviceData(this.inputAll["firstDays"][0], 
+      this.inputAll["lastDays"][0], 
+      this.inputAll["metric1"], 
+      this.inputAll["dimension4"], 
+      this.inputAll["sort3"], 
+      this.inputAll["max"], 
+      this.inputAll["token"], 
+      view["id"]).subscribe(data => {
+      for(var i=0; i<3; i++) { //only need 3: mobile, desktop, tablet
+        this.topDevices.push({"device": data.rows[i][0], "views": data.rows[i][1], "color": this.pieChartColors[i]}); 
+      }
+      this.ref.detectChanges();
+      this.createPieChart(this.topDevices, chartID);
+    },
+    err => {
+      console.log(err);
+      return false;
+    });
   } 
 
-  public onCountryDataSubmit(view) {
-    let topCountrysArray = [];
-    let countryColorArray = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"];
-    this.authService.getCountryData(this.inputAll["firstDays"][0], this.inputAll["lastDays"][0], this.inputAll["metric3"], this.inputAll["dimension2"], this.inputAll["sort2"], this.inputAll["maxCountries"], this.inputAll["token"], view["id"]).subscribe(data => {
-      console.log(data);
+  public onCountriesDataSubmit(view, chartID) {
+    this.topCountries = [];
+    this.authService.getCountryData(this.inputAll["firstDays"][0], 
+                                    this.inputAll["lastDays"][0], 
+                                    this.inputAll["metric3"], 
+                                    this.inputAll["dimension2"], 
+                                    this.inputAll["sort2"], 
+                                    this.inputAll["maxCountries"], 
+                                    this.inputAll["token"], 
+                                    view["id"]).subscribe(data => {
       for(var i=0; i<this.inputAll["maxCountries"]; i++) {
-        topCountrysArray.push({"country": data.rows[i][0], "views": data.rows[i][1], "color": countryColorArray[i]}); 
+        this.topCountries.push({"country": data.rows[i][0], "views": data.rows[i][1], "color": this.pieChartColors[i]}); 
       }
-      this.topCountrys = topCountrysArray;
-      this.createChart();
-      },
-      err => {
-        console.log(err);
-        return false;
-      });
-    this.refreshBindings();
+      this.ref.detectChanges();
+      this.createPieChart(this.topCountries, chartID);
+      
+    },
+    err => {
+      console.log(err);
+      return false;
+    });
   }
 
-  public createChart() {
+  public createBarChart(dataset, chartID, scale) {
 
-    d3.select("svg").remove();
-    d3.select("svg2").remove();
-    d3.select("svg3").remove();
-    d3.select("svg4").remove();
-    d3.select("svg5").remove();
-
-    console.log("in createChart");
-    let dataset1 = this.pageviewsArray.reverse();
-    console.log(dataset1);
     let w = 500;
     let h = 500;
-    let barPadding = 3;
+    let barPadding = 3; 
 
-    let svg = d3.select("#barchartPageviews")
+    d3.select("#" + chartID).selectAll("svg").remove(); 
+
+    let svg = d3.select("#" + chartID)
       .append("svg")
+      .attr("id", chartID)
       .attr("width", w)
       .attr("height", h + 30)
       .attr("align", "center");
 
-
     svg.selectAll("rect")  
-      .data(dataset1)
+      .data(dataset)
       .enter()
       .append("rect")
       .attr("x", function(d, i) {
-        return i * (w / dataset1.length);
+        return i * (w / dataset.length);
       })
       .attr("y", function(d) {
-          return h - (d["views"] * 0.02);
+          return h - (d["views"] * scale);
       })
-      .attr("width", w /dataset1.length - barPadding)
+      .attr("width", w /dataset.length - barPadding)
       .attr("height", function(d) {
-          return (d["views"] * 0.02);
+          return (d["views"] * scale);
       })
       .attr("fill", "#DE8D47");
       
       svg.selectAll("text.values")
-        .data(dataset1)
+        .data(dataset)
         .enter()
         .append("text")
         .text(function(d) {
           return (d["views"] * 0.001).toFixed(1);
         })
         .attr("x", function (d, i) {
-          return i * (w / dataset1.length) + 25;
+          return i * (w / dataset.length) + 25;
         })
         .attr("y", function (d) {
-            return h - (d["views"] * 0.02) - 10;
+            return h - (d["views"] * scale) - 10;
         })
         .attr("font-family", "arial")
         .attr("font-size", "16px")
         .attr("fill", "black");
 
       svg.selectAll("text.labels")
-        .data(dataset1)
+        .data(dataset)
         .enter()
         .append("text")
         .text(function(d) {
           return d["month"].slice(0,7);
         })
         .attr("x", function (d, i) {
-          return i * (w / dataset1.length) + 15;
+          return i * (w / dataset.length) + 15;
         })
         .attr("y", function (d) {
           return h + 15;
@@ -307,221 +389,56 @@ export class BarchartComponent implements OnInit {
         .attr("font-size", "14px")
         .attr("fill", "black");
 
+  }
+  
+  
+  public createPieChart(dataset, chartID) {
 
+    let w = 400;
+    let h = 400;
+    let r = Math.min(w,h)/2; 
+    let innerR = r - 50;
+    let outerR = r - 10;
+    let pieChartColors = this.pieChartColors; 
 
+    d3.select("#" + chartID).selectAll("svg").remove(); 
 
-      let w2 = 250;
-      let h2 = 500;
-      let dataset2 = this.devices;
+    let arc = d3.arc()
+      .outerRadius(r - 10)
+      .innerRadius(0);
 
-      let svg2 = d3.select("#barchart2")
+    let labelArc = d3.arc()
+      .outerRadius(r - 40)
+      .innerRadius(r - 40);
+
+    let pie = d3.pie()
+      .sort(null)
+      .value((function (d:any) {return d}));
+
+    d3.select("#" + chartID).selectAll("svg").remove(); 
+
+    let svg = d3.select("#" + chartID)
         .append("svg")
-        .attr("width", w2)
-        .attr("height", h2 + 30)
-        .attr("align", "center");
-
-
-      svg2.selectAll("rect")  
-        .data(dataset2)
-        .enter()
-        .append("rect")
-        .attr("x", function(d, i) {
-          return i * (w2 / dataset2.length);
-        })
-        .attr("y", function(d) {
-            return h2 - (d["views"] * 0.02);
-        })
-        .attr("width", w2 /dataset2.length - barPadding)
-        .attr("height", function(d) {
-            return (d["views"] * 0.02);
-        })
-        .attr("fill", "#DE8D47");
-      
-      svg2.selectAll("text.values")
-        .data(dataset2)
-        .enter()
-        .append("text")
-        .text(function(d) {
-          return (d["views"] * 0.001).toFixed(1);
-        })
-        .attr("x", function (d, i) {
-          return i * (w2 / dataset2.length) + 25;
-        })
-        .attr("y", function (d) {
-            return h2 - (d["views"] * 0.02) - 10;
-        })
-        .attr("font-family", "arial")
-        .attr("font-size", "16px")
-        .attr("fill", "black");
-
-      svg2.selectAll("text.labels")
-        .data(dataset2)
-        .enter()
-        .append("text")
-        .text(function(d) {
-          return d["device"];
-        })
-        .attr("x", function (d, i) {
-          return i * (w2 / dataset2.length) + 15;
-        })
-        .attr("y", function (d) {
-          return h2 + 15;
-        })
-        .attr("font-family", "arial")
-        .attr("font-size", "14px")
-        .attr("fill", "black");
-
-      let w3 = 400;
-      let h3 = 400;
-      let r1 = Math.min(w3,h3)/2; 
-      let innerRadius = r1 - 50;
-      let outerRadius = r1 - 10;
-      let dataset3 = this.devices;
-      let color = ["#FAA43A", "#5DA5DA", "#7F8C8D"]; 
-
-      console.log(dataset3);
-
-      let arc = d3.arc()
-        .outerRadius(r1 - 10)
-        .innerRadius(0);
-
-      let labelArc = d3.arc()
-        .outerRadius(r1 - 40)
-        .innerRadius(r1 - 40);
-
-      let pie = d3.pie()
-        .sort(null)
-        .value((function (d:any) {return d}));
-
-      let svg3 = d3.select("#piechartDevices")
-        .append("svg")
-        .attr("width", w3)
-        .attr("height", h3 + 30)
+        .attr("id", chartID)
+        .attr("width", w)
+        .attr("height", h + 30)
         .attr("align", "center")
         .append("g")
-        .attr("transform", "translate(" + w3 / 2 + "," + h3 / 2 + ")");
+        .attr("transform", "translate(" + w / 2 + "," + h / 2 + ")");
 
-      let values = dataset3.map(data => data.views);
-      console.log(values);
+      let values = dataset.map(data => data.views);
    
-      let g = svg3.selectAll(".arc")
+      let g = svg.selectAll(".arc")
         .data(pie(values))
         .enter().append("g")
         .attr("class", "arc");
 
-
       g.append("path")
         .attr("d", <any>arc)
         .style("fill", function(d, i)  {
-          console.log(i);
-          //return "#98abc5"; 
-          return color[i];
+          return pieChartColors[i];
         });
 
-
-      let w4 = 400;
-      let h4 = 400;
-      let r2 = Math.min(w4,h4)/2; 
-      let innerRadius2 = r2 - 50;
-      let outerRadius2 = r2 - 10;
-      let dataset4 = this.topSources;
-      let colorSources = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"]; 
-
-      console.log(dataset4);
-
-      let arc2 = d3.arc()
-        .outerRadius(r2 - 10)
-        .innerRadius(0);
-
-      let labelArc2 = d3.arc()
-        .outerRadius(r2 - 40)
-        .innerRadius(r2 - 40);
-
-      let pie2 = d3.pie()
-        .sort(null)
-        .value((function (d:any) {return d}));
-
-      let svg4 = d3.select("#piechartSources")
-        .append("svg")
-        .attr("width", w4)
-        .attr("height", h4 + 30)
-        .attr("align", "center")
-        .append("g")
-        .attr("transform", "translate(" + w4 / 2 + "," + h4 / 2 + ")");
-
-      let values2 = dataset4.map(data => data.views);
-      console.log(values2);
-   
-      let g2 = svg4.selectAll(".arc")
-        .data(pie2(values2))
-        .enter().append("g")
-        .attr("class", "arc");
-
-      g2.append("path")
-        .attr("d", <any>arc2)
-        .style("fill", function(d, i)  {
-          console.log(i);
-          return colorSources[i];
-        });
-
-
-      let w5 = 400;
-      let h5 = 400;
-      let r3 = Math.min(w5,h5)/2; 
-      let innerRadius3 = r3 - 50;
-      let outerRadius3 = r3 - 10;
-      let dataset5 = this.topCountrys;
-      let colorCountry = ["#EC7063", "#AF7AC5", "#5DADE2", "#48C9B0", "#F5B041", "#F4D03F", "#AAB7B8"]; 
-
-      console.log(dataset5);
-
-      let arc3 = d3.arc()
-        .outerRadius(r2 - 10)
-        .innerRadius(0);
-
-      let labelArc3 = d3.arc()
-        .outerRadius(r3 - 40)
-        .innerRadius(r3 - 40);
-
-      let pie3 = d3.pie()
-        .sort(null)
-        .value((function (d:any) {return d}));
-
-      let svg5 = d3.select("#piechartCountry")
-        .append("svg")
-        .attr("width", w5)
-        .attr("height", h5 + 30)
-        .attr("align", "center")
-        .append("g")
-        .attr("transform", "translate(" + w5 / 2 + "," + h5 / 2 + ")");
-
-      let values3 = dataset5.map(data => data.views);
-      console.log(values3);
-   
-      let g3 = svg5.selectAll(".arc")
-        .data(pie3(values3))
-        .enter().append("g")
-        .attr("class", "arc");
-
-      g3.append("path")
-        .attr("d", <any>arc3)
-        .style("fill", function(d, i)  {
-          console.log(i);
-          return colorCountry[i];
-        });
-
-        this.refreshBindings();
-
-        return;
-    
   }
-
-
-
-
-  public refreshBindings() {
-    this.zone.run(() => this.showData = true);
-  }
-
 
 }
